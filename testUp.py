@@ -65,6 +65,10 @@ async def file_upload(file_data: bytes, comp_name: str, extension: str, flag_che
            return f"Upload failed: {str(e)}"
 
 
+@app.get("/")
+def read_root():
+    return {"message": "FastAPI is running"}
+
 @app.post("/upload-file")
 async def upload_single_file(file: UploadFile = File(...), company_name: str = Form(...)):
     """
