@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+                padding-top: 30px;
+            }
+            
+            .container {
+                padding: 20px;
+                max-width: none;
+                width: 100%;
+                margin: 0;
+                border-radius: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        /* Responsive Typography */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .header p {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .header p {
+                font-size: 12px;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        /* Mobile Input Optimization */
+        @media (max-width: 768px) {
+            input[type="text"] {
+                padding: 14px 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                border-radius: 6px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            label {
+                font-size: 15px;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            input[type="text"] {
+                padding: 15px 12px;
+            }
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-label {
+            display: block;
+            padding: 12px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #ecf0f1;
+        }
+
+        .file-label:hover {
+            border-color: #3498db;
+            background-color: #e8f4f8;
+        }
+
+        .file-label.dragover {
+            border-color: #2ecc71;
+            background-color: #e8f8f5;
+        }
+
+        /* Mobile File Upload Optimization */
+        @media (max-width: 768px) {
+            .file-label {
+                padding: 20px 15px;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+            
+            .file-label small {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .file-label {
+                padding: 18px 12px;
+            }
+            
+            .file-label strong {
+                font-size: 14px;
+            }
+            
+            .file-label small {
+                font-size: 11px;
+                display: block;
+                margin-top: 4px;
+            }
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .file-size {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background-color: #34495e;
+        }
+
+        .submit-btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* Mobile Button Optimization */
+        @media (max-width: 768px) {
+            .submit-btn {
+                padding: 16px;
+                font-size: 16px;
+                border-radius: 8px;
+                margin-top: 25px;
+                min-height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .submit-btn {
+                padding: 18px;
+                font-size: 16px;
+                min-height: 52px;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .download-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f8f5;
+            border: 2px solid #2ecc71;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .download-btn {
+            background-color: #27ae60;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #229954;
+        }
+
+        /* Mobile Download Section */
+        @media (max-width: 768px) {
+            .download-section {
+                margin-top: 25px;
+                padding: 18px;
+                border-radius: 8px;
+            }
+            
+            .download-section h3 {
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
+            
+            .download-section p {
+                font-size: 14px;
+                margin-bottom: 15px;
+            }
+            
+            .download-btn {
+                padding: 14px 28px;
+                font-size: 16px;
+                border-radius: 6px;
+                min-height: 48px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .download-btn {
+                width: 100%;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Document Processor</h1>
+            <p>Upload your PDF file and enter company details for processing</p>
+        </div>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="companyName">Company Name</label>
+                <input type="text" id="companyName" name="companyName" required placeholder="Enter your company name">
+            </div>
+
+            <div class="form-group">
+                <label for="fileUpload">Upload PDF File (Max 10MB)</label>
+                <div class="file-upload">
+                    <input type="file" id="fileUpload" name="file" class="file-input" accept=".pdf" required>
+                    <label for="fileUpload" class="file-label" id="fileLabel">
+                        <strong>Click to choose file</strong> or drag and drop<br>
+                        <small>PDF files only, maximum 10MB</small>
+                    </label>
+                </div>
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+                <div id="fileError" class="error"></div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Process Document</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your document...</p>
+        </div>
+
+        <div class="download-section" id="downloadSection">
+            <h3>Processing Complete!</h3>
+            <p>Your document has been processed successfully.</p>
+            <a href="#" class="download-btn" id="downloadBtn">Download Processed PDF</a>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileUpload');
+        const fileLabel = document.getElementById('fileLabel');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileError = document.getElementById('fileError');
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let selectedFile = null;
+        const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+
+        // File input change handler
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop handlers
+        fileLabel.addEventListener('dragover', handleDragOver);
+        fileLabel.addEventListener('dragleave', handleDragLeave);
+        fileLabel.addEventListener('drop', handleDrop);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            validateAndDisplayFile(file);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            fileLabel.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            fileLabel.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            fileLabel.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            validateAndDisplayFile(file);
+        }
+
+        function validateAndDisplayFile(file) {
+            fileError.textContent = '';
+            
+            if (!file) {
+                selectedFile = null;
+                fileInfo.style.display = 'none';
+                return;
+            }
+
+            // Check file type
+            if (file.type !== 'application/pdf') {
+                fileError.textContent = 'Please select a PDF file only.';
+                selectedFile = null;
+                fileInfo.style.display = 'none';
+                return;
+            }
+
+            // Check file size
+            if (file.size > maxFileSize) {
+                fileError.textContent = 'File size must be less than 10MB.';
+                selectedFile = null;
+                fileInfo.style.display = 'none';
+                return;
+            }
+
+            selectedFile = file;
+            displayFileInfo(file);
+        }
+
+        function displayFileInfo(file) {
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            fileInfo.innerHTML = `
+                <strong>${file.name}</strong><br>
+                <span class="file-size">Size: ${fileSize} MB</span>
+            `;
+            fileInfo.style.display = 'block';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Form submission handler
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const companyName = document.getElementById('companyName').value.trim();
+            
+            if (!companyName) {
+                alert('Please enter a company name.');
+                return;
+            }
+
+            if (!selectedFile) {
+                alert('Please select a PDF file to upload.');
+                return;
+            }
+
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            downloadSection.style.display = 'none';
+
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('company_name', companyName);
+
+                // Replace this URL with your actual backend API endpoint
+                // Examples:
+                // Local development: 'http://localhost:3000/api/process-document'
+                // Production: 'https://your-api-domain.com/api/process-document'
+                // Vercel: 'https://your-app.vercel.app/api/process-document'
+                // Heroku: 'https://your-app.herokuapp.com/api/process-document'
+                
+                const API_URL = 'http://127.0.0.1:8000/upload-file'; // Change this to your backend URL
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Get the processed file as blob
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const cleanCompanyName = companyName.replace(/[.\s]/g, '').toLowerCase();
+                
+                // Set up download
+                downloadBtn.href = downloadUrl;
+                downloadBtn.download = `${cleanCompanyName}_knowledgefile.pdf`;
+                
+                // Show download section
+                loading.style.display = 'none';
+                downloadSection.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error processing document:', error);
+                alert('Error processing document. Please try again.');
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            form.reset();
+            selectedFile = null;
+            fileInfo.style.display = 'none';
+            fileError.textContent = '';
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+            downloadSection.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
