@@ -23,3 +23,7 @@ test.py
 test.txt
 text_to_pdf.py
 users.json
+
+landing_page/
+gitbook_scrap.py
+documentation.md
