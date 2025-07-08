@@ -176,8 +176,6 @@ Format the content clearly with headings, bullet points, and tables if needed â€
     )
    
    result = response.choices[0].message.content
-   print(data)
-   print(result)
    f_result = text_to_pdf(result)
    flag = False
    name = f"{file_name}_KnoweldgeFile.pdf"
