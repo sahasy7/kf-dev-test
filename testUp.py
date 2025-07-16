@@ -13,6 +13,13 @@ from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from openai import AzureOpenAI
 from fpdf import FPDF
 import textwrap
+import requests
+from bs4 import BeautifulSoup
+import re
+import extruct
+from w3lib.html import get_base_url
+import json
+
 
 app = FastAPI(title="File Upload Example", version="1.0.0")
 
@@ -70,33 +77,45 @@ def read_root():
     return {"message": "FastAPI is running"}
 
 @app.post("/upload-file")
-async def upload_single_file(file: UploadFile = File(...), company_name: str = Form(...)):
+async def upload_single_file(
+    file: Optional[UploadFile] = File(None),
+    company_name: str = Form(...),
+    company_url: Optional[str] = Form(None)
+):
     """
-    File(...) tells FastAPI:
-    - This endpoint expects a file upload
-    - The file parameter is required (... = required)
-    - Parse multipart/form-data automatically
+    Uploads a file and/or a company URL, extracts information, generates a knowledge PDF.
+    - File is optional.
+    - company_name is required.
+    - company_url is optional.
     """
-    print(f"📁 Received file: {file.filename}")
-    print(f"📋 Content type: {file.content_type}")
-    print(f"📏 File size: {file.size} bytes")
-    
-    # Read file content
-    content = await file.read()
-    file_extension = file.filename.split('.')[-1].lower()
-    
-    # Save file to disk
-    """file_path = os.path.join(UPLOAD_DIR, f"single_{company_name}_{file.filename}")
-    with open(file_path, "wb") as f:
-        f.write(content) **/"""
-    No_flag  = True
-    upload_doc = await file_upload(content, company_name,file_extension,No_flag)
-    Doc_collect = await analyze_document_complete(upload_doc)
-    kf_file,kf_name, kf_extension,kf_flg = await knowledge_ai(Doc_collect,company_name)
-    upload_kf = await file_upload(kf_file,kf_name, kf_extension,kf_flg)
-    
-    
-    
+
+    if file:
+        print(f"📁 Received file: {file.filename}")
+        print(f"📋 Content type: {file.content_type}")
+        # FastAPI UploadFile doesn't have a .size attribute, so don't use it directly
+
+        content = await file.read()
+        file_extension = file.filename.split('.')[-1].lower()
+        No_flag = True
+
+        upload_doc = await file_upload(content, company_name, file_extension, No_flag)
+        Doc_collect = await analyze_document_complete(upload_doc)
+    else:
+        Doc_collect = {"document_text": "No document uploaded"}
+
+    if company_url:
+        url_data = await extract_url(company_url)
+    else:
+        url_data = {"url_data": "No company URL provided"}
+
+    combined_data = {
+        "document_data": Doc_collect,
+        "url_data": url_data
+    }
+
+    kf_file, kf_name, kf_extension, kf_flg = await knowledge_ai(combined_data, company_name)
+    upload_kf = await file_upload(kf_file, kf_name, kf_extension, kf_flg)
+
     return Response(
         content=kf_file.encode('latin-1'),
         media_type='application/pdf',
@@ -164,7 +183,7 @@ Format the content clearly with headings, bullet points, and tables if needed �
            },
            {
                "role": "user",
-               "content": kf_data,
+               "content": json.dumps(kf_data, indent=2),
             }
         ],
         max_completion_tokens= None,
@@ -212,3 +231,51 @@ def text_to_pdf(text_content):
             pdf.cell(0, 5, wrapped_line, ln=1)
 
     return pdf.output(dest='S')
+
+async def extract_url(url):
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    response = requests.get(url, headers=headers)
+    html = response.text
+    soup = BeautifulSoup(html, 'lxml')  # You can also use 'html.parser'
+
+    base_url = get_base_url(html, url)
+
+    # Title & Meta
+    title = soup.title.string if soup.title else ''
+    meta_desc = soup.find("meta", attrs={"name": "description"})
+    meta_desc = meta_desc["content"] if meta_desc else ''
+
+    # Keywords & Author
+    meta_keywords = soup.find("meta", attrs={"name": "keywords"})
+    meta_keywords = meta_keywords["content"] if meta_keywords else ''
+    meta_author = soup.find("meta", attrs={"name": "author"})
+    meta_author = meta_author["content"] if meta_author else ''
+
+    # All Text Content
+    all_text = soup.get_text(separator=' ', strip=True)
+
+    # Links
+    links = [a['href'] for a in soup.find_all('a', href=True)]
+
+    # Images
+    images = [img['src'] for img in soup.find_all('img', src=True)]
+
+    # Emails and Phone Numbers
+    emails = list(set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", html)))
+    phones = list(set(re.findall(r'\+?\d[\d\s().-]{7,}\d', html)))
+
+    # Structured Data (JSON-LD, Microdata, RDFa, etc.)
+    structured_data = extruct.extract(html, base_url=base_url)
+
+    # Headings
+    headings = {
+        "h1": [h.get_text(strip=True) for h in soup.find_all('h1')],
+        "h2": [h.get_text(strip=True) for h in soup.find_all('h2')],
+        "h3": [h.get_text(strip=True) for h in soup.find_all('h3')],
+    }
+
+    # Return everything
+    return {
+        "Title": title,
+        "All Text": all_text
+    }
