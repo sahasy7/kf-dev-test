@@ -15,10 +15,10 @@ from fpdf import FPDF
 import textwrap
 import requests
 from bs4 import BeautifulSoup
-import re
-import extruct
 from w3lib.html import get_base_url
 import json
+from urllib.parse import urljoin, urlparse
+
 
 
 app = FastAPI(title="File Upload Example", version="1.0.0")
@@ -308,82 +308,75 @@ def text_to_pdf(text_content):
 
 
 async def extract_url(url):
+    def get_internal_links(soup, base_url):
+        base_domain = urlparse(base_url).netloc
+        internal_links = set()
+        for a_tag in soup.find_all("a", href=True):
+            href = a_tag['href']
+            parsed_href = urlparse(href)
+            if parsed_href.netloc and parsed_href.netloc != base_domain:
+                continue  # Skip external links
+            if href.startswith(('mailto:', 'tel:', '#')):
+                continue  # Skip non-page links
+            full_url = urljoin(base_url, href)
+            internal_links.add(full_url)
+        return list(internal_links)
+
+    def extract_short_text(sub_url):
+        try:
+            r = requests.get(sub_url, headers=headers, timeout=15)
+            r.raise_for_status()
+            sub_soup = BeautifulSoup(r.text, 'lxml')
+            text = sub_soup.get_text(separator=' ', strip=True)
+            return text[:2000]  # Limit for performance
+        except:
+            return "Error fetching or parsing"
+
     try:
-        # Validate URL format
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
 
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         }
-        
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        
-        html = response.text
+
+        res = requests.get(url, headers=headers, timeout=30)
+        res.raise_for_status()
+        html = res.text
         soup = BeautifulSoup(html, 'lxml')
 
-        base_url = get_base_url(html, url)
-
-        # Title & Meta
-        title = soup.title.string if soup.title else 'No title found'
-        title = title.strip() if title else 'No title found'
-        
+        title = soup.title.string.strip() if soup.title else 'No title'
         meta_desc = soup.find("meta", attrs={"name": "description"})
         meta_desc = meta_desc.get("content", '') if meta_desc else ''
 
-        # Keywords & Author
-        meta_keywords = soup.find("meta", attrs={"name": "keywords"})
-        meta_keywords = meta_keywords.get("content", '') if meta_keywords else ''
-        
-        meta_author = soup.find("meta", attrs={"name": "author"})
-        meta_author = meta_author.get("content", '') if meta_author else ''
-
-        # All Text Content (limit to prevent too much data)
         all_text = soup.get_text(separator=' ', strip=True)
-        # Limit text length to prevent oversized responses
-        if len(all_text) > 10000:
-            all_text = all_text[:10000] + "... (truncated)"
+        all_text = all_text[:10000] + "... (truncated)" if len(all_text) > 10000 else all_text
 
-        # Clean text to ASCII only
-        all_text = ''.join(char if ord(char) < 127 else ' ' for char in all_text)
-        title = ''.join(char if ord(char) < 127 else ' ' for char in title)
-        meta_desc = ''.join(char if ord(char) < 127 else ' ' for char in meta_desc)
-
-        # Headings
         headings = {
-            "h1": [h.get_text(strip=True)[:200] for h in soup.find_all('h1')[:5]],  # Limit headings
+            "h1": [h.get_text(strip=True)[:200] for h in soup.find_all('h1')[:5]],
             "h2": [h.get_text(strip=True)[:200] for h in soup.find_all('h2')[:10]],
             "h3": [h.get_text(strip=True)[:200] for h in soup.find_all('h3')[:10]],
         }
 
-        # Clean headings
-        for key in headings:
-            headings[key] = [''.join(char if ord(char) < 127 else ' ' for char in h) for h in headings[key]]
+        internal_links = get_internal_links(soup, url)
+        subpages_data = {}
 
-        # Return essential data only
+        for link in internal_links[:8]:  # limit to 8 sub-pages
+            subpages_data[link] = extract_short_text(link)
+
         return {
             "url": url,
             "title": title,
             "meta_description": meta_desc,
-            "meta_keywords": meta_keywords,
-            "meta_author": meta_author,
             "headings": headings,
             "text_content": all_text,
+            "subpages": subpages_data,
             "extraction_status": "success"
         }
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Request error extracting URL {url}: {str(e)}")
-        return {
-            "url": url,
-            "error": f"Failed to fetch URL: {str(e)}",
-            "extraction_status": "failed"
-        }
+
     except Exception as e:
-        print(f"Error extracting URL {url}: {str(e)}")
         return {
             "url": url,
-            "error": f"Error extracting data: {str(e)}",
+            "error": f"Extraction failed: {str(e)}",
             "extraction_status": "failed"
         }
