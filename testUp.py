@@ -200,31 +200,61 @@ STRICT CHARACTER SET RESTRICTION: Do NOT use the latin-1 (ISO-8859-1) character 
 Generate a document or text (like a summary, report, or info sheet) using only characters that are compatible with standard ASCII encoding (characters 32-126).
 
 Avoid using:
-- Emojis
-- Smart quotes (" " ' ')
-- Em dashes or en dashes (— –)
-- Ellipses (…)
-- Any characters outside basic ASCII range
-- Latin-1 extended characters (characters 128-255)
-- Any non-ASCII characters including accented letters
-- Special symbols beyond basic punctuation
+
+Emojis
+
+Smart quotes (" " ' ')
+
+Em dashes or en dashes (-)
+
+Ellipses (...)
+
+Any characters outside basic ASCII range
+
+Latin-1 extended characters (characters 128-255)
+
+Any non-ASCII characters including accented letters
+
+Special symbols beyond basic punctuation
 
 Use only standard ASCII characters like:
-- Regular quotes (" and ')
-- Regular hyphens (-)
-- Basic punctuation (. , ! ? : ;)
-- Standard letters (A-Z, a-z)
-- Numbers (0-9)
-- Basic symbols (@ # $ % & * + = < > [ ] { } | \ / _)
+
+Regular quotes (" and ')
+
+Regular hyphens (-)
+
+Basic punctuation (. , ! ? : ;)
+
+Standard letters (A-Z, a-z)
+
+Numbers (0-9)
+
+Basic symbols (@ # $ % & * + = < > [ ] { } | \ / _)
 
 Format the content clearly with headings, bullet points, and tables if needed — but keep all characters strictly within the ASCII character set (32-126 range only).
 
+Additional Instructions for RAG/FAQ Bot Knowledge File Creation:
+Remove all marketing fluff, testimonials, and non-informative content that does not add factual value.
+
+Extract and keep only structured, factual, and query-relevant data (e.g., services, contact info, opening hours, location, key offerings).
+
+Convert the extracted information into a clean, question-answer (Q&A) friendly format when possible.
+
+Exclude unnecessary website navigation items, decorative text, duplicate content, and irrelevant meta information.
+
+Ensure the output is ready for ingestion by AI models by keeping it structured, concise, and free from noise.
+
 Create a comprehensive knowledge file that includes:
-1. Company Overview
-2. Key Information from Documents
-3. Website Analysis
-4. Important Details and Facts
-5. Summary and Conclusions""",
+
+Company Overview
+
+Key Information from Documents (only factual data)
+
+Services and Offerings
+
+Location, Contact Information, and Operating Hours
+
+Summary and Conclusions (for context)""",
                 },
                 {
                     "role": "user",
